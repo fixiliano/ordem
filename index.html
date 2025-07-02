@@ -329,10 +329,10 @@
         <button type="button" class="button" onclick="gerarNovoCodigo()">🔄 Gerar Novo Código</button>
         <label for="os">Número da O.S.:</label>
         <input type="text" id="os" readonly />
-        <label for="cliente">Entrada:</label>
+        <label for="entrada">Data da entrada:</label>
         <input type="text" id="entrada" />
-        <label for="cliente">Nome do Cliente:</label>
-        <input type="text" id="cliente" />
+        <label for="saída">Data da Saída:</label>
+        <input type="text" id="saída" />
         <label for="cliente">Nome do Cliente:</label>
         <input type="text" id="cliente" />
         <label for="marca">Marca:</label>
@@ -840,6 +840,8 @@ Estamos enviando uma prévia da sua O.S. ${r.os}:
 
 *Código:* ${r.codigoGerado}
 
+*Entrada:* ${r.entrada}
+
 *Diagnóstico:* ${r.diagnostico}
 
 *Solução:* ${r.solucao}
@@ -917,64 +919,229 @@ Conserto de Celulares`;
       }
     }
 
-    function gerarPDFIndividual(i) {
-      const r = registros[i];
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      
-      // Cabeçalho
-      doc.setFontSize(18);
-      doc.setTextColor(0, 204, 153);
-      doc.text('FATOR X ASSISTÊNCIA', 20, 20);
-      
-      doc.setFontSize(12);
-      doc.setTextColor(0, 0, 0);
-      doc.text('Ordem de Serviço', 20, 30);
-      
-      // Dados do registro
-      let y = 45;
-      const lineHeight = 8;
-      
-      doc.text(`O.S.: ${r.os}`, 20, y);
-      y += lineHeight;
-      doc.text(`Código: ${r.codigoGerado}`, 20, y);
-      y += lineHeight;
-      doc.text(`Data: ${r.data}`, 20, y);
-      y += lineHeight;
-      doc.text(`Cliente: ${r.cliente}`, 20, y);
-      y += lineHeight;
-      doc.text(`Marca: ${r.marca}`, 20, y);
-      y += lineHeight;
-      doc.text(`Modelo: ${r.modelo}`, 20, y);
-      y += lineHeight;
-      doc.text(`IMEI: ${r.imei}`, 20, y);
-      y += lineHeight;
-      doc.text(`Técnico: ${r.tecnico}`, 20, y);
-      y += lineHeight;
-      doc.text(`Status: ${r.status}`, 20, y);
-      y += lineHeight;
-      doc.text(`Valor: R$ ${r.valor}`, 20, y);
-      y += lineHeight;
-      doc.text(`Custo de Peças: R$ ${r.custoPecas}`, 20, y);
-      y += lineHeight * 2;
-      
-      doc.text('Diagnóstico:', 20, y);
-      y += lineHeight;
-      const diagnosticoLines = doc.splitTextToSize(r.diagnostico, 170);
-      doc.text(diagnosticoLines, 20, y);
-      y += diagnosticoLines.length * lineHeight + lineHeight;
-      
-      doc.text('Solução Aplicada:', 20, y);
-      y += lineHeight;
-      const solucaoLines = doc.splitTextToSize(r.solucao, 170);
-      doc.text(solucaoLines, 20, y);
-      
-      // Rodapé
-      doc.setFontSize(8);
-      doc.text('FATOR X © 2025 - Conserto de Celulares', 20, 280);
-      
-      doc.save(`OS_${r.os}_${r.cliente.replace(/\s+/g, '_')}.pdf`);
-    }
+        // gerar PDF
+
+function gerarPDFIndividual(i) {
+  const r = registros[i];
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  // Configurações de cores
+  const corPrimaria = [0, 204, 153]; // Verde da Fator X
+  const corSecundaria = [44, 62, 80]; // Azul escuro
+  const corTexto = [0, 0, 0]; // Preto
+  const corCinza = [128, 128, 128]; // Cinza
+  
+  // ===== CABEÇALHO COM LOGO =====
+  // Carregar e inserir logo
+  const logoImg = new Image();
+  logoImg.crossOrigin = 'anonymous';
+  logoImg.onload = function() {
+    // Logo no canto superior esquerdo
+    doc.addImage(logoImg, 'PNG', 15, 10, 30, 20);
+    
+    // Continuar com o resto do PDF após carregar a logo
+    gerarRestoDoPDF();
+  };
+  logoImg.onerror = function() {
+    // Se erro ao carregar logo, continuar sem ela
+    gerarRestoDoPDF();
+  };
+
+    // Logo do PDF
+  logoImg.src = 'https://i.postimg.cc/YC6JsFr8/LOGO.png';
+  
+  function gerarRestoDoPDF() {
+    // Título da empresa
+    doc.setFontSize(18);
+    doc.setTextColor(...corTexto);
+    doc.setFont('helvetica', 'bold');
+    // doc.text('FATOR X ASSISTÊNCIA TÉCNICA', 80, 50);
+    
+    // Número da OS destacado
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`ORDEM DE SERVIÇO: ${r.os}`, 60, 18);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Código: ${r.codigoGerado}`, 150, 15);
+    doc.text(`Data: ${r.data}`, 150, 22);
+    
+    // ===== DADOS DO CLIENTE (Layout compacto) =====
+    let y = 45;
+    
+    // Linha 1: Cliente e Status
+    doc.setTextColor(...corTexto);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Cliente:', 15, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(r.cliente, 40, y);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text('Status:', 120, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(r.status, 140, y);
+    
+    // Linha 2: Telefone e Técnico
+    y += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.text('Telefone:', 15, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(r.telefone || 'Não informado', 40, y);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text('Técnico:', 120, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(r.tecnico, 140, y);
+    
+    // ===== DADOS DO APARELHO =====
+    y += 15;
+    doc.setTextColor(...corSecundaria);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DADOS DO APARELHO', 15, y);
+    
+    y += 10;
+    doc.setTextColor(...corTexto);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    // Linha 1: Marca e Modelo
+    doc.text('Marca:', 15, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(r.marca, 35, y);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text('Modelo:', 80, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(r.modelo, 105, y);
+    
+    // Linha 2: IMEI
+    y += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.text('IMEI:', 15, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(r.imei, 35, y);
+    
+    // ===== DIAGNÓSTICO E SOLUÇÃO (Layout compacto) =====
+    y += 15;
+    doc.setTextColor(...corSecundaria);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DIAGNÓSTICO', 15, y);
+    
+    y += 8;
+    doc.setTextColor(...corTexto);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    
+    const diagnosticoLines = doc.splitTextToSize(r.diagnostico, 180);
+    doc.text(diagnosticoLines, 15, y);
+    y += diagnosticoLines.length * 5 + 8;
+    
+    doc.setTextColor(...corSecundaria);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SOLUÇÃO APLICADA', 15, y);
+    
+    y += 8;
+    doc.setTextColor(...corTexto);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    
+    const solucaoLines = doc.splitTextToSize(r.solucao, 180);
+    doc.text(solucaoLines, 15, y);
+    y += solucaoLines.length * 5 + 10;
+    
+    // ===== VALORES =====
+    doc.setTextColor(...corSecundaria);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('VALORES', 15, y);
+    
+    y += 10;
+    doc.setTextColor(...corTexto);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    doc.text('Custo de Peças:', 15, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`R$ ${r.custoPecas}`, 60, y);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text('Valor Total:', 120, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(`R$ ${r.valor}`, 155, y);
+    
+    // ===== TERMO DE GARANTIA (versão compacta) =====
+    y += 20;
+    doc.setTextColor(...corSecundaria);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TERMO DE GARANTIA', 15, y);
+    
+// ===== Espaco entre termo de garantia e texto =====
+    y += 5;
+    doc.setTextColor(...corTexto);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    const termoTexto = `
+
+O prazo de garantia do serviço é de 90 dias a partir da data do conserto. 
+
+A garantia da Fator X Assistência não cobre:
+• Defeitos ou danos resultantes do uso inadequado do produto pelo cliente ou terceiros
+• Peças expostas externamente arranhada, sujeira, marcas, manchas, trincada ou quebrada
+
+O consumidor declara e reconhece que:*
+I) É o legítimo proprietário do aparelho ou está autorizado para requisitar seu reparo
+II) Todas as informações fornecidas são verdadeiras
+III) Não nos responsabilizamos pela perda da garantia original do aparelho do cliente, dos dados, tais como agenda contatos, jogos, fotos, músicas, imagens, e demais conteúdo do aparelho
+IV) A Fator X Assistência não se responsabiliza por películas protetoras de tela e outros acessórios do gênero
+V) O cliente está informado e concorda que no reparo do aparelho poderão ser utilizadas peças recondicionadas em perfeitas condições de funcionamento
+
+Declaro que é minha responsabilidade a procedência deste material, declaro também estar de acordo com as observações citadas acima. `;
+    
+    const termoLines = doc.splitTextToSize(termoTexto, 180);
+    doc.text(termoLines, 15, y);
+    y += termoLines.length * 4 + 15;
+    
+    // ===== RODAPÉ (transparente com texto preto) =====
+    // Linha separadora simples
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    doc.line(15, y, 195, y);
+    
+    y += 8;
+    // Informações da empresa
+    doc.setTextColor(...corTexto);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('FATOR X ASSISTÊNCIA TÉCNICA', 15, y);
+    
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    y += 5;
+    doc.text('Endereço: Rua das Tecnologias, 123 - Centro - Fortaleza/CE - CEP: 60000-000', 15, y);
+    y += 4;
+    doc.text('Telefone: (85) 9999-9999 | WhatsApp: (85) 99999-9999 | Email: contato@fatorx.com.br', 15, y);
+    
+    // Técnico responsável no lado direito
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Técnico: ${r.tecnico}`, 120, y - 9);
+    
+    // Data de geração
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Gerado em: ${new Date().toLocaleString()}`, 120, y - 5);
+    
+    // Salvar o PDF
+    doc.save(`OS_${r.os}_${r.cliente.replace(/\s+/g, '_')}.pdf`);
+  }
+}
 
     function gerarPDFTodos() {
       gerarPDFMultiplos(registros, 'Todos_Registros_FatorX.pdf');
