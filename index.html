@@ -5,6 +5,67 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Fator X Assistência</title>
   <style>
+        body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background-color: #121212;
+      color: #ffffff;
+    }
+
+    /* Tela de login */
+    #login-section {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #121212;
+    }
+    .login-box {
+      background-color: #1e1e1e;
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 0 10px #00000080;
+    }
+    .login-box h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+      color: #00cc99;
+    }
+    .login-box input {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+      border: none;
+      background-color: #2b2b2b;
+      color: white;
+    }
+    .login-box button {
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #00cc99;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .error {
+      background: #ff4d4d;
+      padding: 0.5rem;
+      border-radius: 6px;
+      text-align: center;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    /* Oculta conteúdo principal até login */
+    #main-content {
+      display: none;
+    }
+
     :root {
       --bg-color: #121212;
       --text-color: #ffffff;
@@ -246,6 +307,17 @@
   </style>
 </head>
 <body>
+
+    <!-- Seção de login -->
+  <section id="login-section">
+    <div class="login-box">
+      <h2>🔐 Login</h2>
+      <div id="login-error" class="error">Usuário ou senha incorretos!</div>
+      <input type="text" id="username" placeholder="Usuário" autocomplete="off" />
+      <input type="password" id="password" placeholder="Senha" />
+      <button onclick="fazerLogin()">Entrar</button>
+    </div>
+  </section>
 
   <!-- Conteúdo do sistema (invisível até login) -->
   <div id="main-content">
@@ -1246,7 +1318,7 @@ Declaro que é minha responsabilidade a procedência deste material, declaro tam
       const senha = document.getElementById('password').value.trim();
       const erro = document.getElementById('login-error');
 
-      if (usuario === '1234' && senha === '1234') {
+      if (usuario === 'fator' && senha === '86260215') {
         document.getElementById('login-section').style.display = 'none';
         document.getElementById('main-content').style.display = 'block';
       } else {
