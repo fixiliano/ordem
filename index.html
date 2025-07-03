@@ -273,13 +273,9 @@
             <option value="12">Dezembro</option>
           </select>
           <select id="filtroAno" onchange="atualizarFaturamento()">
-            <option value="">📆 2025</option>
-            <option value="">📆 2026</option>
-            <option value="">📆 2027</option>
-            <option value="">📆 2028</option>
-            <option value="">📆 2029</option>
-            <option value="">📆 2030</option>
+          <!-- Os anos serão inseridos dinamicamente -->
           </select>
+
           <select id="filtroStatus" onchange="atualizarFaturamento()">
             <option value="">📊 Todos os status</option>
             <option value="Concluído">Concluído</option>
@@ -330,9 +326,9 @@
         <label for="os">Número da O.S.:</label>
         <input type="text" id="os" readonly />
         <label for="entrada">Data da entrada:</label>
-        <input type="text" id="entrada" />
+        <input type="text" id="entrada" oninput="formatarDataInput(this); limitarTamanhoData(this)" placeholder="dd/mm/aaaa" maxlength="10" />
         <label for="saída">Data da Saída:</label>
-        <input type="text" id="saída" />
+        <input type="text" id="saída" oninput="formatarDataInput(this); limitarTamanhoData(this)" placeholder="dd/mm/aaaa" maxlength="10" />
         <label for="cliente">Nome do Cliente:</label>
         <input type="text" id="cliente" />
         <label for="marca">Marca:</label>
@@ -377,7 +373,7 @@
         <div class="button-group-registros">
           <button class="button" onclick="exportarBackup()" style="background: #3498db !important; color: white !important;">💾 Exportar Backup</button>
           <button class="button" onclick="document.getElementById('importFile').click()" style="background: #e67e22 !important; color: white !important;">📁 Importar Backup</button>
-          <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importarBackup(event)">
+          <input type="file" id="importFile" accept=".txt" style="display: none;" onchange="importarBackup(event)">
         </div>
         <div id="historico"></div>
       </div>
@@ -388,6 +384,8 @@
       FATOR X © 2025 - Conserto de Celulares - Todos os direitos reservados
     </footer>
   </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
@@ -639,90 +637,95 @@
       return descricao;
     }
     // NOVA FUNCIONALIDADE: Sistema de Backup e Restore
-    function exportarBackup() {
-      try {
-        const dadosBackup = {
-          versao: '1.0',
-          dataExportacao: new Date().toISOString(),
-          totalRegistros: registros.length,
-          contadorOS: contadorOS,
-          registros: registros
-        };
-        
-        const jsonString = JSON.stringify(dadosBackup, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `FatorX_Backup_${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        alert(`✅ Backup exportado com sucesso!\n📊 ${registros.length} registros salvos\n📅 ${new Date().toLocaleString()}`);
-      } catch (error) {
-        console.error('Erro ao exportar backup:', error);
-        alert('❌ Erro ao exportar backup. Tente novamente.');
-      }
-    }
+function exportarBackup() {
+  const senha = prompt("🔐 Digite uma senha para proteger o backup:");
+
+  if (!senha || senha.length < 4) {
+    alert("⚠️ Senha inválida. Digite ao menos 4 caracteres.");
+    return;
+  }
+
+  try {
+    const dadosBackup = {
+      versao: '1.0',
+      dataExportacao: new Date().toISOString(),
+      totalRegistros: registros.length,
+      contadorOS: contadorOS,
+      registros: registros
+    };
+
+    const textoPlano = JSON.stringify(dadosBackup);
+    const criptografado = CryptoJS.AES.encrypt(textoPlano, senha).toString();
+
+    const blob = new Blob([criptografado], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `FatorX_Backup_Criptografado_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    alert("✅ Backup criptografado exportado com sucesso!");
+  } catch (e) {
+    console.error("Erro ao exportar:", e);
+    alert("❌ Falha ao exportar backup.");
+  }
+}
+
     
-    function importarBackup(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      
-      if (!file.name.endsWith('.json')) {
-        alert('❌ Por favor, selecione um arquivo JSON válido.');
-        return;
+function importarBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const senha = prompt("🔐 Digite a senha usada na exportação:");
+  if (!senha || senha.length < 4) {
+    alert("⚠️ Senha inválida.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const conteudoCriptografado = e.target.result;
+      const bytes = CryptoJS.AES.decrypt(conteudoCriptografado, senha);
+      const textoDescriptografado = bytes.toString(CryptoJS.enc.Utf8);
+
+      if (!textoDescriptografado) throw new Error("Senha incorreta ou conteúdo inválido.");
+
+      const dadosImportados = JSON.parse(textoDescriptografado);
+
+      if (!dadosImportados.registros || !Array.isArray(dadosImportados.registros)) {
+        throw new Error("Estrutura do backup inválida.");
       }
-      
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const dadosImportados = JSON.parse(e.target.result);
-          
-          // Validar estrutura do backup
-          if (!dadosImportados.registros || !Array.isArray(dadosImportados.registros)) {
-            throw new Error('Estrutura de backup inválida');
-          }
-          
-          // Confirmar importação
-          const confirmar = confirm(
-            `🔄 Importar Backup?\n\n` +
-            `📊 Registros no backup: ${dadosImportados.totalRegistros || dadosImportados.registros.length}\n` +
-            `📅 Data do backup: ${dadosImportados.dataExportacao ? new Date(dadosImportados.dataExportacao).toLocaleString() : 'Não informada'}\n\n` +
-            `⚠️ ATENÇÃO: Isso substituirá todos os dados atuais!\n` +
-            `Registros atuais: ${registros.length}\n\n` +
-            `Deseja continuar?`
-          );
-          
-          if (!confirmar) return;
-          
-          // Importar dados
-          registros = dadosImportados.registros;
-          contadorOS = dadosImportados.contadorOS || registros.length;
-          
-          // Salvar no localStorage
-          salvarDados();
-          
-          // Atualizar interface
-          atualizarOS();
-          carregarRegistros();
-          
-          alert(`✅ Backup importado com sucesso!\n📊 ${registros.length} registros carregados`);
-          
-        } catch (error) {
-          console.error('Erro ao importar backup:', error);
-          alert('❌ Erro ao importar backup. Verifique se o arquivo é válido.');
-        }
-      };
-      
-      reader.readAsText(file);
-      
-      // Limpar input para permitir reimportação do mesmo arquivo
-      event.target.value = '';
+
+      const confirmar = confirm(
+        `🔄 Importar Backup Criptografado?\n\n` +
+        `📊 Registros: ${dadosImportados.totalRegistros || dadosImportados.registros.length}\n` +
+        `📅 Data: ${new Date(dadosImportados.dataExportacao).toLocaleString()}\n\n` +
+        `⚠️ Isso substituirá os dados atuais. Deseja continuar?`
+      );
+
+      if (!confirmar) return;
+
+      registros = dadosImportados.registros;
+      contadorOS = dadosImportados.contadorOS || registros.length;
+      salvarDados();
+      atualizarOS();
+      carregarRegistros();
+      alert("✅ Backup importado com sucesso!");
+    } catch (err) {
+      console.error("Erro ao importar:", err);
+      alert("❌ Falha ao importar. Verifique a senha ou o arquivo.");
     }
+  };
+
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
 
     function atualizarOS() {
       document.getElementById("os").value = `OS-${(contadorOS + 1).toString().padStart(4, '0')}`;
@@ -783,6 +786,7 @@
       atualizarOS();
       carregarRegistros();
       alert("Registro salvo com sucesso!");
+      limparFormulario();
     }
 
     function obterFormulario() {
@@ -802,6 +806,22 @@
         telefone: document.getElementById("telefone").value
       }
     }
+
+    function limparFormulario() {
+  document.getElementById("entrada").value = "";
+  document.getElementById("saída").value = "";
+  document.getElementById("cliente").value = "";
+  document.getElementById("marca").value = "";
+  document.getElementById("modeloAparelho").value = "";
+  document.getElementById("imei").value = "";
+  document.getElementById("diagnostico").value = "";
+  document.getElementById("solucao").value = "";
+  document.getElementById("status").value = "Em análise"; // ou outro valor padrão
+  document.getElementById("valor").value = "";
+  document.getElementById("custoPecas").value = "";
+  document.getElementById("tecnico").value = "";
+  document.getElementById("telefone").value = "";
+}
 
     function enviarWhatsAppRegistro(i = null) {
       const r = i === null ? obterFormulario() : registros[i];
@@ -1239,8 +1259,52 @@ Declaro que é minha responsabilidade a procedência deste material, declaro tam
     
     // INICIALIZAÇÃO MODIFICADA: Carrega dados salvos
     carregarDados(); // Carregar dados do localStorage
+    // Definir mês, ano e status padrão nos filtros de faturamento
+    const hoje = new Date();
+    document.getElementById('filtroMes').value = (hoje.getMonth() + 1).toString(); // Mês atual (1-12)
+    // Gerar os próximos 100 anos dinamicamente no filtro de ano
+    const filtroAno = document.getElementById('filtroAno');
+    const anoAtual = hoje.getFullYear();
+
+    filtroAno.innerHTML = '<option value="">📆 Todos os anos</option>'; // opção padrão
+
+    for (let i = 0; i < 100; i++) {
+    const ano = anoAtual + i;
+    const option = document.createElement('option');
+    option.value = ano;
+    option.textContent = `📆 ${ano}`;
+    filtroAno.appendChild(option);
+}
+
+// Selecionar o ano atual por padrão
+filtroAno.value = anoAtual.toString();
+    document.getElementById('filtroStatus').value = "Concluído";                   // Status padrão
+
+// Atualizar os dados já com os filtros aplicados
+atualizarFaturamento();
     atualizarOS();
     carregarRegistros();
+
+// Função para formatar data automaticamente com barras
+function formatarDataInput(input) {
+  let valor = input.value.replace(/\D/g, ''); // Remove tudo que não é número
+  
+  if (valor.length >= 2) {
+    valor = valor.substring(0, 2) + '/' + valor.substring(2);
+  }
+  if (valor.length >= 5) {
+    valor = valor.substring(0, 5) + '/' + valor.substring(5, 9);
+  }
+  
+  input.value = valor;
+}
+
+// Função para limitar o tamanho máximo da data
+function limitarTamanhoData(input) {
+  if (input.value.length > 10) {
+    input.value = input.value.substring(0, 10);
+  }
+}
   </script>
 
 </body>
