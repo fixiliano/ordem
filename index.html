@@ -1224,7 +1224,7 @@ Declaro que é minha responsabilidade a procedência deste material, declaro tam
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     y += 5;
-    doc.text('Endereço: Rua Raul Cabral, 638 - Montese - Fortaleza/CE - CEP: 60000-000', 15, y);
+    doc.text('Endereço: Rua Raul Cabral, 638 - Montese - Fortaleza/CE - CEP: 60420-318', 15, y);
     y += 4;
     doc.text('Telefone: (85) 99173-7910 | WhatsApp: (85) 99173-7910 | Email: fatorxassistencia@gmail.com', 15, y);
     
@@ -1292,7 +1292,7 @@ Declaro que é minha responsabilidade a procedência deste material, declaro tam
         y += lineHeight;
         doc.text(`   ${r.marca} ${r.modelo} - IMEI: ${r.imei}`, 20, y);
         y += lineHeight;
-        doc.text(`   Status: ${r.status} | Valor: R$ ${r.valor} | Custo Peças: R$ ${r.custoPecas}`, 20, y);
+        doc.text(`   Status: ${r.status} | Valor: R$ ${r.valor}`, 20, y);
         y += lineHeight;
         doc.text(`   Diagnóstico: ${r.diagnostico.substring(0, 80)}${r.diagnostico.length > 80 ? '...' : ''}`, 20, y);
         y += lineHeight;
